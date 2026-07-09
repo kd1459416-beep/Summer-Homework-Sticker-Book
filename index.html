@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夏休み課題シール帳</title>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f8fafc; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #1e293b; font-size: 24px; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 400px; width: 100%; margin-bottom: 30px; }
+        .day-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .day-card.completed { border-color: #fbbf24; background: #fffbeb; }
+        .sticker { display: none; font-size: 32px; position: absolute; }
+        .day-card.completed .sticker { display: block; animation: pop 0.3s ease; }
+        .day-card.completed .date-num { opacity: 0.2; }
+        @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        .todo-section { background: white; padding: 20px; border-radius: 16px; max-width: 400px; width: 100%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .todo-item { display: flex; align-items: center; margin: 12px 0; font-size: 18px; }
+        .todo-item input { width: 22px; height: 22px; margin-right: 12px; cursor: pointer; }
+        .todo-item.done { text-decoration: line-through; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <h1>📅 夏休み課題シール帳</h1>
+    <p style="color: #64748b; margin-top:0;">7/18 〜 7/31 (毎日全クリアでシール！)</p>
+
+    <div class="grid" id="calendar"></div>
+
+    <div class="todo-section">
+        <h3 id="selected-date-title">7月18日の課題</h3>
+        <div id="todo-list"></div>
+    </div>
+
+    <script>
+        // 7月18日〜31日までのデータ構造
+        const startDay = 18;
+        const endDay = 31;
+        
+        // ローカルストレージ（スマホ内）に保存するデータ。なければ初期化
+        let appData = JSON.parse(localStorage.getItem('summer_tasks')) || {};
+        let activeDay = startDay;
+
+        // 初期データの作成（各日のデフォルトタスク）
+        for(let d = startDay; d <= endDay; d++) {
+            if(!appData[d]) {
+                appData[d] = {
+                    isStickerOn: false,
+                    tasks: [
+                        { text: "数学のワーク", done: false },
+                        { text: "英語の宿題", done: false },
+                        { text: "読書感想文/自由研究", done: false }
+                    ]
+                };
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('summer_tasks', JSON.stringify(appData));
+        }
+
+        // カレンダーの描画
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            for(let d = startDay; d <= endDay; d++) {
+                const card = document.createElement('div');
+                card.className = `day-card ${appData[d].isStickerOn ? 'completed' : ''}`;
+                if(d === activeDay) card.style.borderColor = '#4f46e5';
+                
+                card.innerHTML = `<span class="date-num">${d}日</span><span class="sticker">💮</span>`;
+                card.onclick = () => { activeDay = d; updateUI(); };
+                calendar.appendChild(card);
+            }
+        }
+
+        // ToDoリストの描画
+        function renderTodos() {
+            document.getElementById('selected-date-title').innerText = `7月${activeDay}日の課題`;
+            const listContainer = document.getElementById('todo-list');
+            listContainer.innerHTML = '';
+
+            appData[activeDay].tasks.forEach((task, index) => {
+                const item = document.createElement('div');
+                item.className = `todo-item ${task.done ? 'done' : ''}`;
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.done;
+                checkbox.onchange = () => {
+                    task.done = checkbox.checked;
+                    
+                    // その日のタスクが全て終わったかチェック
+                    const allDone = appData[activeDay].tasks.every(t => t.done);
+                    appData[activeDay].isStickerOn = allDone;
+                    
+                    saveData();
+                    updateUI();
+                };
+
+                const label = document.createElement('span');
+                label.innerText = task.text;
+
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                listContainer.appendChild(item);
+            });
+        }
+
+        function updateUI() {
+            renderCalendar();
+            renderTodos();
+        }
+
+        // 初回起動
+        updateUI();
+    </script>
+</body>
+</html>
